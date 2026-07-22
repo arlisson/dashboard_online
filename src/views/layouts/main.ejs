@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title><%= title %> — Dashboard Avance</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body class="<%= page === 'pages/dashboard' ? 'theme-dashboard' : 'theme-admin' %>" data-user-id="<%= currentUser?.id || '' %>">
+  <a class="skip-link" href="#content">Pular para o conteúdo</a>
+  <%- include('../partials/navbar') %>
+  <main id="content" class="page-main <%= page === 'pages/sales' ? 'page-main--wide' : '' %>"><%- include('../' + page) %></main>
+  <% if (currentUser) { %><footer class="site-footer">Dashboard da Empresa</footer><% } %>
+  <script src="/assets/js/app.js" defer></script><script src="/assets/js/catalog-upload.js" defer></script><script src="/assets/js/management-tabs.js" defer></script><script src="/assets/js/events.js" defer></script>
+</body>
+</html>

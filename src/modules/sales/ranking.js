@@ -1,0 +1,18 @@
+'use strict';
+
+function compareRanking(a, b) {
+  const revenue = Number(b.revenue) - Number(a.revenue);
+  if (revenue) return revenue;
+  const units = Number(b.units) - Number(a.units);
+  if (units) return units;
+  const firstSale = String(a.first_sale).localeCompare(String(b.first_sale));
+  return firstSale || Number(a.seller_id) - Number(b.seller_id);
+}
+function sortRanking(rows) { return [...rows].sort(compareRanking); }
+function didOvertake(before, after, sellerId) {
+  const oldIndex = before.findIndex((row) => Number(row.seller_id) === Number(sellerId));
+  const newIndex = after.findIndex((row) => Number(row.seller_id) === Number(sellerId));
+  return oldIndex >= 0 && newIndex >= 0 && newIndex < oldIndex;
+}
+
+module.exports = { compareRanking, sortRanking, didOvertake };

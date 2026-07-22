@@ -1,0 +1,2 @@
+'use strict';const test=require('node:test');const assert=require('node:assert/strict');const{fetchEvents}=require('../../src/modules/dashboard/events.routes');
+test('SSE consulta somente IDs posteriores para replay idempotente',async()=>{const calls=[];const query={where(...a){calls.push(a);return this;},orderBy(...a){calls.push(a);return this;},limit(n){calls.push(['limit',n]);return Promise.resolve([]);}};const db=()=>query;db.fn={now:()=> 'NOW'};await fetchEvents(db,41,100);assert.deepEqual(calls[0],['id','>',41]);assert.deepEqual(calls.at(-1),['limit',100]);});
