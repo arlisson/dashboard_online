@@ -150,3 +150,11 @@ Rollback de aplicação: redeploy do release anterior. Migrations seguem expand/
 ## Testes
 
 `npm run test:run` cobre horários, ranges, timezone, CNPJ, dinheiro, metas, ranking, progresso, mídia, Excel, SSE, segurança e inspeção legada. Com `TEST_MYSQL=1`, a suíte também cria migrations do zero, executa seed duas vezes e valida sessão/CSRF/RBAC contra MySQL real. O workflow CI executa tudo em Linux case-sensitive com MySQL 8.4, detectando inclusive diferenças como `navbar.ejs`.
+
+## Decisões de interface
+
+- O dashboard usa tema escuro isolado e largura integral; as telas administrativas usam tema claro e contêiner de até 1200 px.
+- Em telas até 900 px, a navegação vira menu recolhível e o dashboard passa a uma coluna. O destaque interno empilha em 700 px.
+- O código imutável de serviços, operadoras e tipos de venda é gerado no backend a partir do nome. Ele não aparece no formulário, conforme a composição visual de referência, e não depende de JavaScript.
+- Vendas mantêm o tipo de venda no formulário e nas regras, mas a coluna foi omitida da listagem visual conforme o guia. Tabelas largas rolam apenas dentro do próprio contêiner.
+- A validação visual cobre 1920×1080, 1440×900, 1024×768, 768×1024 e 390×844, além dos limites 1500, 1200, 1100, 900, 720 e 700 px. Artefatos locais ficam em `tmp/visual-validation/` e não devem ser versionados.
