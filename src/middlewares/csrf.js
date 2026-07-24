@@ -11,6 +11,7 @@ function csrfToken(req, res, next) {
 
 function csrfProtection(req, _res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  if (req.is('multipart/form-data') && !req.body?._csrf && !req.get('x-csrf-token')) return next();
   const supplied = req.get('x-csrf-token') || req.body?._csrf;
   const expected = req.session?.csrfToken;
   if (!supplied || !expected) return next(new AppError(403, 'CSRF_INVALID', 'A sessão do formulário expirou. Atualize a página.'));
