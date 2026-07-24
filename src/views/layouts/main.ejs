@@ -7,13 +7,13 @@
   <title><%= title %> — Dashboard Avance</title>
   <link rel="stylesheet" href="/assets/css/app.css">
   <link rel="stylesheet" href="/assets/css/responsive-fix.css">
-  <% if (page === 'pages/dashboard') { %><link rel="stylesheet" href="/assets/css/dashboard.css?v=20260724-9"><% } %>
+  <% if (page === 'pages/dashboard') { %><link rel="stylesheet" href="/assets/css/dashboard.css?v=20260724-15"><% } %>
 </head>
-<body class="<%= page === 'pages/dashboard' ? 'theme-dashboard' : 'theme-admin' %>" data-user-id="<%= currentUser?.id || '' %>">
+<body class="<%= page === 'pages/dashboard' ? 'theme-dashboard' : 'theme-admin' %>" data-user-id="<%= currentUser?.id || '' %>" data-timezone="<%= typeof timezone !== 'undefined' ? timezone : 'America/Sao_Paulo' %>">
   <a class="skip-link" href="#content">Pular para o conteúdo</a>
   <%- include('../partials/navbar') %>
   <main id="content" class="page-main <%= page === 'pages/sales' ? 'page-main--wide' : '' %>"><%- include('../' + page) %></main>
-  <% if (currentUser) { %><footer class="site-footer">Dashboard da Empresa</footer><% } %>
-  <script src="/assets/js/app.js" defer></script><script src="/assets/js/management-tabs.js" defer></script><script src="/assets/js/events.js" defer></script>
+  <% if (currentUser) { %><button type="button" class="sound-control" id="sound-control" aria-pressed="false">Ativar sons</button><footer class="site-footer">Dashboard da Empresa</footer><% } %>
+  <script src="/assets/js/app.js" defer></script><script src="/assets/js/management-tabs.js" defer></script><script src="/assets/js/events.js?v=20260724-6" defer></script>
 </body>
 </html>

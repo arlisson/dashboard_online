@@ -44,11 +44,13 @@ const periodLabels = { today: 'Hoje', week: 'Semana atual', biweekly: 'Quinzena 
         <div class="operator-card__chart">
           <svg viewBox="0 0 42 42" role="img" aria-label="Distribuição da receita por operadora">
             <circle cx="21" cy="21" r="10" pathLength="100" fill="none" stroke="#242940" stroke-width="20"></circle>
-            <% let operatorOffset = 25; dashboard.data.operators.forEach((operator) => { const share = operator.revenue / operatorTotal * 100; %>
-              <circle class="operator-card__slice" tabindex="0" cx="21" cy="21" r="10" pathLength="100" fill="none" stroke="<%= operator.color %>" stroke-width="20" stroke-dasharray="<%= share %> <%= 100 - share %>" stroke-dashoffset="<%= operatorOffset %>" data-operator="<%= operator.code %>" data-name="<%= operator.name %>" data-quantity="<%= operator.units %>" data-value="<%= brl(operator.revenue) %>"><title><%= operator.name %> — Quantidade: <%= operator.units %> — Valor: <%= brl(operator.revenue) %></title></circle>
-            <% operatorOffset -= share; }) %>
+            <% let operatorOffset = 0; dashboard.data.operators.forEach((operator) => { const share = operator.revenue / operatorTotal * 100; %>
+              <circle class="operator-card__slice" tabindex="0" cx="21" cy="21" r="10" pathLength="100" fill="none" stroke="<%= operator.color %>" stroke-width="20" stroke-dasharray="<%= share %> <%= 100 - share %>" stroke-dashoffset="<%= -operatorOffset %>" transform="rotate(-90 21 21)" data-operator="<%= operator.code %>" data-name="<%= operator.name %>" data-quantity="<%= operator.units %>" data-value="<%= brl(operator.revenue) %>"><title><%= operator.name %> — Quantidade: <%= operator.units %> — Valor: <%= brl(operator.revenue) %></title></circle>
+            <% operatorOffset += share; }) %>
+            <% let labelOffset = 0; dashboard.data.operators.forEach((operator) => { const share = operator.revenue / operatorTotal * 100; const angle = (-90 + (labelOffset + share / 2) * 3.6) * Math.PI / 180; const labelX = 21 + Math.cos(angle) * 6.2; const labelY = 21 + Math.sin(angle) * 6.2; %>
+              <text class="operator-card__percentage" x="<%= labelX.toFixed(2) %>" y="<%= labelY.toFixed(2) %>" text-anchor="middle" dominant-baseline="middle"><%= Math.round(share) %>%</text>
+            <% labelOffset += share; }) %>
           </svg>
-          <span><strong><%= Math.round(dashboard.data.operators[0].revenue / operatorTotal * 100) %>%</strong><small>maior participação</small></span>
           <div class="operator-chart-tooltip" role="tooltip" hidden><strong></strong><span><i></i>Quantidade: <b></b></span><small>Valor: <b></b></small></div>
         </div>
       <% } else { %><div class="dashboard-empty">Nenhuma venda no período.</div><% } %>

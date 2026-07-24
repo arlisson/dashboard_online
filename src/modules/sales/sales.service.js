@@ -65,21 +65,27 @@ async function rankingSnapshot(db, date) {
   return sortRanking(rows);
 }
 
-function improvedSeller(before, after) {
-  for (let index = 0; index < after.length; index += 1) {
-    const oldIndex = before.findIndex((row) => Number(row.seller_id) === Number(after[index].seller_id));
-    if (oldIndex >= 0 && index < oldIndex) return Number(after[index].seller_id);
-  }
-  return null;
+function newFirstPlaceSeller(before, after) {
+  const previousLeader = before[0];
+  const currentLeader = after[0];
+  if (!previousLeader || !currentLeader) return null;
+  return Number(previousLeader.seller_id) === Number(currentLeader.seller_id) ? null : Number(currentLeader.seller_id);
+}
+
+async function applicableDailyGoals(db, date, sellerId) {
+  const period = await db('goal_periods').where({ code: 'daily' }).first();
+  if (!period) return [];
+  const base = db('goals').where({ goal_period_id: period.id }).whereNull('deleted_at').where('start_date', '<=', date).where('end_date', '>=', date);
+  const [general, individual] = await Promise.all([
+    base.clone().where({ goal_type: 'general' }).whereNull('seller_id').first(),
+    base.clone().where({ goal_type: 'individual', seller_id: sellerId }).first()
+  ]);
+  return [general, individual].filter(Boolean);
 }
 
 async function applicableDailyGoal(db, date, sellerId) {
-  const period = await db('goal_periods').where({ code: 'daily' }).first();
-  if (!period) return null;
-  const base = db('goals').where({ goal_period_id: period.id }).whereNull('deleted_at').where('start_date','<=',date).where('end_date','>=',date);
-  const individual = await base.clone().where({ goal_type: 'individual', seller_id: sellerId }).first();
-  if (individual) return individual;
-  return base.clone().where({ goal_type: 'general' }).whereNull('seller_id').first();
+  const goals = await applicableDailyGoals(db, date, sellerId);
+  return goals.find((goal) => goal.goal_type === 'individual') || goals[0] || null;
 }
 
 async function realizedForGoal(db, goal, date, sellerId) {
@@ -103,23 +109,31 @@ async function mutateSale(db, { operation, id, input, userId }) {
     for (const date of dates) beforeRankings.set(date, await rankingSnapshot(trx, date));
     const targetDate = input?.sale_date || current.sale_date;
     const sellerId = input?.seller_id || current.seller_id;
-    const goal = operation === 'delete' ? null : await applicableDailyGoal(trx, targetDate, sellerId);
-    const realizedBefore = goal ? await realizedForGoal(trx, goal, targetDate, sellerId) : 0;
+    const goals = operation === 'create' ? await applicableDailyGoals(trx, targetDate, sellerId) : [];
+    const realizedBefore = new Map();
+    for (const goal of goals) realizedBefore.set(goal.id, await realizedForGoal(trx, goal, targetDate, sellerId));
     let saleId = id;
     if (operation === 'create') { [saleId] = await trx('sales').insert(saleData(input, userId)); }
     else if (operation === 'update') await trx('sales').where({ id }).update({ ...saleData(input, userId, current), updated_at: trx.fn.now() });
     else await trx('sales').where({ id }).update({ deleted_at: trx.fn.now(), deleted_by: userId, updated_at: trx.fn.now(), updated_by: userId });
     const eventResult = { saleCreated: operation === 'create', rankingOvertake: false, dailyGoalReached: false };
-    if (operation === 'create') await emit(trx, 'sale_created', { saleId, date: targetDate });
-    for (const date of dates) {
+    if (operation === 'create') await emit(trx, 'sale_created', { saleId, date: targetDate, createdBy: userId });
+    if (operation === 'create') for (const date of dates) {
       const after = await rankingSnapshot(trx, date);
-      const overtaker = improvedSeller(beforeRankings.get(date), after);
-      if (overtaker) { eventResult.rankingOvertake = true; await emit(trx, 'ranking_overtake', { saleId, date, sellerId: overtaker }); }
+      const overtaker = newFirstPlaceSeller(beforeRankings.get(date), after);
+      if (overtaker) { eventResult.rankingOvertake = true; await emit(trx, 'ranking_overtake', { saleId, date, sellerId: overtaker, createdBy: userId }); }
     }
-    if (goal) {
-      const realizedAfter = await realizedForGoal(trx, goal, targetDate, sellerId);
-      const target = Number(goal.goal_value);
-      if (target > 0 && realizedBefore < target && realizedAfter >= target) { eventResult.dailyGoalReached = true; await emit(trx, 'daily_goal_reached', { saleId, date: targetDate, sellerId, goalId: goal.id }); }
+    if (operation === 'create' && goals.length) {
+      const reachedGoalIds = [];
+      for (const goal of goals) {
+        const realizedAfter = await realizedForGoal(trx, goal, targetDate, sellerId);
+        const target = Number(goal.goal_value);
+        if (target > 0 && Number(realizedBefore.get(goal.id) || 0) < target && realizedAfter >= target) reachedGoalIds.push(Number(goal.id));
+      }
+      if (reachedGoalIds.length) {
+        eventResult.dailyGoalReached = true;
+        await emit(trx, 'daily_goal_reached', { saleId, date: targetDate, sellerId, goalIds: reachedGoalIds, createdBy: userId });
+      }
     }
     return { id: Number(saleId), events: eventResult, before: current };
   });
@@ -131,4 +145,4 @@ async function listReferences(db, current) {
   return result;
 }
 
-module.exports = { applyFilters, listSales, getSale, saleData, rankingSnapshot, applicableDailyGoal, mutateSale, listReferences };
+module.exports = { applyFilters, listSales, getSale, saleData, rankingSnapshot, applicableDailyGoal, applicableDailyGoals, newFirstPlaceSeller, mutateSale, listReferences };
