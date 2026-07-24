@@ -11,7 +11,12 @@ function csrfToken(req, res, next) {
 
 function csrfProtection(req, _res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-  if (req.is('multipart/form-data') && !req.body?._csrf && !req.get('x-csrf-token')) return next();
+  // `req.is` é fornecido pelo Express, mas o middleware também deve aceitar
+  // requisições mínimas usadas por testes e por integrações programáticas.
+  const isMultipart = typeof req.is === 'function'
+    ? req.is('multipart/form-data')
+    : /^multipart\/form-data(?:;|$)/i.test(req.headers?.['content-type'] || '');
+  if (isMultipart && !req.body?._csrf && !req.get('x-csrf-token')) return next();
   const supplied = req.get('x-csrf-token') || req.body?._csrf;
   const expected = req.session?.csrfToken;
   if (!supplied || !expected) return next(new AppError(403, 'CSRF_INVALID', 'A sessÃ£o do formulÃ¡rio expirou. Atualize a pÃ¡gina.'));

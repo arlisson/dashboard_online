@@ -150,3 +150,44 @@
 .sales-ranking__leader .seller-rank img{width:34px;height:34px;border-radius:50%;object-fit:cover}
 .sales-ranking__leader .seller-cell>strong{color:#fdff8a;font-size:1.35rem;font-weight:900;text-shadow:0 0 10px rgba(250,255,90,.22)}
 .sales-ranking__leader td:last-child>strong{color:#ffe768;font-size:1rem;text-shadow:0 0 10px rgba(250,204,21,.18)}
+/* Slightly larger dashboard typography; navbar intentionally excluded */
+.sales-dashboard{font-size:13px}
+.sales-dashboard .dashboard-card__header h2,.sales-dashboard .dashboard-performance>h2{font-size:.86rem}
+.sales-dashboard .dashboard-pill{font-size:.72rem}
+.sales-dashboard .shift-kpi__documents small,.sales-dashboard .shift-kpi__total small,.sales-dashboard .shift-kpi__goal small{font-size:.72rem}
+.sales-dashboard .shift-kpi__documents strong{font-size:1.14rem}
+.sales-dashboard .shift-kpi__documents b{font-size:.73rem}
+.sales-dashboard .shift-kpi__total strong{font-size:1.18rem}
+.sales-dashboard .shift-kpi__goal strong{font-size:1.02rem}
+.sales-dashboard .revenue-goals__list span{font-size:.76rem}
+.sales-dashboard .revenue-goals__list strong{font-size:.84rem}
+.sales-dashboard .operator-card__legend b{font-size:.72rem}
+.sales-dashboard .operator-card__legend small{font-size:.62rem}
+.sales-dashboard .operator-card__chart>span strong{font-size:.98rem}
+.sales-dashboard .operator-card__chart>span small{font-size:.56rem}
+.sales-dashboard .dashboard-showcase__leader>div strong{font-size:1.16rem}
+.sales-dashboard .dashboard-showcase__leader>div small{font-size:.68rem}
+.sales-dashboard .sales-results__toolbar>h2{font-size:1.24rem}
+.sales-dashboard .sales-results__filters label{font-size:.64rem}
+.sales-dashboard .sales-results__filters select,.sales-dashboard .sales-results__filters input,.sales-dashboard .dashboard-filter-button{font-size:.74rem}
+.sales-dashboard .sales-results__goal{font-size:.72rem}
+.sales-dashboard .sales-results__goal strong{font-size:.82rem}
+.sales-dashboard .dashboard-warning{font-size:.74rem}
+.sales-dashboard .sales-ranking th{font-size:.82rem}
+.sales-dashboard .sales-ranking td{font-size:.87rem}
+.sales-dashboard .seller-rank{font-size:.7rem}
+.sales-dashboard .sale-chip b{font-size:.72rem}
+.sales-dashboard .sale-origin{font-size:.62rem}
+.sales-dashboard .sales-ranking__leader .seller-cell>strong{font-size:1.43rem}
+.sales-dashboard .sales-ranking__leader td:last-child>strong{font-size:1.08rem}
+.sales-dashboard .period-countdown__box strong{font-size:.98rem}
+.sales-dashboard .period-countdown__box b{font-size:2.16rem}
+.sales-dashboard .period-countdown__box small{font-size:.72rem}
+.sales-dashboard .dashboard-performance__metrics small{font-size:.67rem}
+.sales-dashboard .dashboard-performance__metrics strong{font-size:.89rem}
+.sales-dashboard .dashboard-gauge text{font-size:10px}
+.sales-dashboard .dashboard-gauge>strong{font-size:.8rem}
+.sales-dashboard .dashboard-gauge>small{font-size:.62rem}
+.sales-dashboard .operator-chart-tooltip>strong{font-size:.79rem}
+.sales-dashboard .operator-chart-tooltip>span,.sales-dashboard .operator-chart-tooltip>small{font-size:.72rem}
+.theme-dashboard .site-footer{font-size:1.04rem}
