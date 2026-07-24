@@ -8,10 +8,10 @@ const service = require('./sales.service');
 const { audit } = require('../audit/audit.service');
 const { nowCommercial } = require('../../shared/commercial-time');
 
-async function renderSales(db, env, req, res) {
+async function renderSales(db, env, req, res, form = {}) {
   const edit = req.params.id ? await service.getSale(db, req.params.id) : null;
   const [result, references] = await Promise.all([service.listSales(db, req.query), service.listReferences(db, edit)]);
-  res.render('layouts/main', { title: 'Vendas', page: 'pages/sales', result, references, edit, query: req.query, now: nowCommercial(env.APP_TIMEZONE) });
+  res.status(form.status || 200).render('layouts/main', { title: 'Vendas', page: 'pages/sales', result, references, edit, query: form.query || req.query, now: nowCommercial(env.APP_TIMEZONE), ...form });
 }
 
 function salesRouter({ db, env }) {
@@ -19,8 +19,8 @@ function salesRouter({ db, env }) {
   router.use(requireAuth);
   router.get('/', (req, res, next) => renderSales(db, env, req, res).catch(next));
   router.get('/:id/edit', (req, res, next) => renderSales(db, env, req, res).catch(next));
-  router.post('/', requireRole('admin','operator'), async (req, res, next) => { try { const input = parse(saleSchema, req.body); const result = await service.mutateSale(db, { operation: 'create', input, userId: req.user.id }); await audit(db, req, { action: 'sale.create', entityType: 'sale', entityId: result.id, after: input }); res.redirect(`/sales?created=${result.id}`); } catch (error) { next(error); } });
-  router.post('/:id', requireRole('admin','operator'), async (req, res, next) => { try { const input = parse(saleSchema, req.body); const result = await service.mutateSale(db, { operation: 'update', id: req.params.id, input, userId: req.user.id }); await audit(db, req, { action: 'sale.update', entityType: 'sale', entityId: req.params.id, before: result.before, after: input }); res.redirect('/sales'); } catch (error) { next(error); } });
+  router.post('/', requireRole('admin','operator'), async (req, res, next) => { try { const input = parse(saleSchema, req.body); const result = await service.mutateSale(db, { operation: 'create', input, userId: req.user.id }); await audit(db, req, { action: 'sale.create', entityType: 'sale', entityId: result.id, after: input }); res.redirect(`/sales?created=${result.id}`); } catch (error) { if (error.status !== 422) return next(error); renderSales(db, env, req, res, { status: 422, query: { ...req.query, tab: 'form' }, draft: req.body, fieldErrors: error.fieldErrors || {}, formError: error.message }).catch(next); } });
+  router.post('/:id', requireRole('admin','operator'), async (req, res, next) => { try { const input = parse(saleSchema, req.body); const result = await service.mutateSale(db, { operation: 'update', id: req.params.id, input, userId: req.user.id }); await audit(db, req, { action: 'sale.update', entityType: 'sale', entityId: req.params.id, before: result.before, after: input }); res.redirect('/sales'); } catch (error) { if (error.status !== 422) return next(error); renderSales(db, env, req, res, { status: 422, query: { ...req.query, tab: 'form' }, draft: req.body, fieldErrors: error.fieldErrors || {}, formError: error.message }).catch(next); } });
   router.post('/:id/delete', requireRole('admin'), async (req, res, next) => { try { const result = await service.mutateSale(db, { operation: 'delete', id: req.params.id, userId: req.user.id }); await audit(db, req, { action: 'sale.delete', entityType: 'sale', entityId: req.params.id, before: result.before }); res.redirect('/sales'); } catch (error) { next(error); } });
   return router;
 }

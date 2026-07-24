@@ -13,9 +13,8 @@ function timeToMinutes(value) {
 
 function getSaleShift(value) {
   const minutes = timeToMinutes(value);
-  if (minutes !== null && minutes >= MINUTES.morningStart && minutes < MINUTES.morningEnd) return 'morning';
-  if (minutes !== null && minutes >= MINUTES.afternoonStart && minutes <= MINUTES.afternoonEnd) return 'afternoon';
-  throw new AppError(422, 'OUTSIDE_BUSINESS_HOURS', 'HorÃ¡rio fora do expediente comercial.', { sale_time: 'Use 08:00â€“11:59 ou 13:30â€“17:30.' });
+  if (minutes === null) throw new AppError(422, 'INVALID_SALE_TIME', 'Horário da venda inválido.', { sale_time: 'Informe um horário válido.' });
+  return minutes < 12 * 60 ? 'morning' : 'afternoon';
 }
 
 function nowCommercial(timezone = 'America/Sao_Paulo') {
