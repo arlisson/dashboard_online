@@ -27,12 +27,14 @@ function joinedQuery(db) {
 }
 
 async function listSales(db, filters = {}) {
-  const page = Math.max(1, Number(filters.page) || 1), pageSize = Math.min(100, Math.max(1, Number(filters.page_size) || 25));
+  const requestedPage = Math.max(1, Number(filters.page) || 1), pageSize = Math.min(100, Math.max(1, Number(filters.page_size) || 10));
   const base = applyFilters(joinedQuery(db), filters);
   const count = await base.clone().clearSelect().clearOrder().countDistinct({ count: 'sales.id' }).first();
-  const items = await base.clone().select('sales.*','sellers.full_name as seller_name','services.name as service_name','operators.name as operator_name','sale_types.name as sale_type_name','sale_types.code as sale_type_code').orderBy([{column:'sales.sale_date',order:'desc'},{column:'sales.sale_time',order:'desc'},{column:'sales.id',order:'desc'}]).limit(pageSize).offset((page-1)*pageSize);
   const total = Number(count.count);
-  return { items, pagination: { page, pageSize, total, pages: Math.max(1, Math.ceil(total/pageSize)) } };
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(requestedPage, pages);
+  const items = await base.clone().select('sales.*','sellers.full_name as seller_name','services.name as service_name','operators.name as operator_name','sale_types.name as sale_type_name','sale_types.code as sale_type_code').orderBy([{column:'sales.sale_date',order:'desc'},{column:'sales.sale_time',order:'desc'},{column:'sales.id',order:'desc'}]).limit(pageSize).offset((page-1)*pageSize);
+  return { items, pagination: { page, pageSize, total, pages } };
 }
 
 async function getSale(db, id) {

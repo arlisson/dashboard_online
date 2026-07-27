@@ -18,12 +18,10 @@ const goalSchema = z.object({
   if (value.goal_type === 'general' && value.seller_id) ctx.addIssue({code:'custom',path:['seller_id'],message:'Meta geral não possui vendedora.'});
   const categories = ['portability_base_value','portability_out_value','new_base_value','new_out_value'];
   const usedCategories = categories.filter((key) => value[key] !== null);
-  if (usedCategories.length && usedCategories.length !== 4) ctx.addIssue({code:'custom',path:['portability_base_value'],message:'Preencha as quatro categorias ou deixe todas vazias.'});
-  if (usedCategories.length === 4 && !categories.reduce((sum,key) => sum.plus(value[key]),new Decimal(0)).eq(value.goal_value)) ctx.addIssue({code:'custom',path:['goal_value'],message:'A soma das quatro categorias deve ser igual à meta total.'});
+  if (usedCategories.length && !usedCategories.reduce((sum,key) => sum.plus(value[key]),new Decimal(0)).eq(value.goal_value)) ctx.addIssue({code:'custom',path:['goal_value'],message:'A soma das categorias preenchidas deve ser igual a meta total.'});
   const shifts = ['morning_value','afternoon_value'];
   const usedShifts = shifts.filter((key) => value[key] !== null);
-  if (usedShifts.length && usedShifts.length !== 2) ctx.addIssue({code:'custom',path:['morning_value'],message:'Preencha manhã e tarde ou deixe ambas vazias.'});
-  if (usedShifts.length === 2 && !new Decimal(value.morning_value).plus(value.afternoon_value).eq(value.goal_value)) ctx.addIssue({code:'custom',path:['goal_value'],message:'Manhã + tarde deve ser igual à meta total.'});
+  if (usedShifts.length && !usedShifts.reduce((sum,key) => sum.plus(value[key]),new Decimal(0)).eq(value.goal_value)) ctx.addIssue({code:'custom',path:['goal_value'],message:'A soma dos turnos preenchidos deve ser igual a meta total.'});
 });
 
 module.exports = { goalSchema, moneyColumns };

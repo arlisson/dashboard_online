@@ -1,8 +1,183 @@
-<% const isForm=currentUser.role==='admin'&&(edit||query.tab==='form');const goal=edit||{}; %>
-<header class="page-header"><div><h1>Metas</h1><p>Cadastre, visualize e gerencie as metas do sistema.</p></div></header>
-<section class="admin-card management-hub"><div class="tabs" role="tablist" aria-label="Seções de metas"><a role="tab" aria-selected="<%=!isForm%>" tabindex="<%=!isForm?0:-1%>" class="tab <%=!isForm?'is-active':''%>" href="/goals">Lista de Metas</a><%if(currentUser.role==='admin'){%><a role="tab" aria-selected="<%=isForm%>" tabindex="<%=isForm?0:-1%>" class="tab <%=isForm?'is-active':''%>" href="/goals?tab=form"><%=edit?'Editar':'Cadastrar'%> Meta</a><%}%></div>
-<%if(isForm){%><section class="form-panel"><h2><%=edit?'Editar Meta':'Cadastrar Meta'%></h2><p>Preencha os dados para <%=edit?'atualizar a':'cadastrar uma nova'%> meta.</p><form method="post" action="<%=edit?'/goals/'+edit.id:'/goals'%>" class="stack" id="goal-form"><input type="hidden" name="_csrf" value="<%=csrfToken%>">
-  <label>Tipo da Meta<select name="goal_type"><option value="general" <%=goal.goal_type!=='individual'?'selected':''%>>Geral</option><option value="individual" <%=goal.goal_type==='individual'?'selected':''%>>Individual</option></select></label><label>Período<select name="goal_period_id" required><option value="">Selecione</option><%refs.periods.forEach(p=>{%><option value="<%=p.id%>" data-code="<%=p.code%>" <%=Number(goal.goal_period_id)===Number(p.id)?'selected':''%>><%=p.name%></option><%})%></select></label><label class="seller-goal-field">Vendedora<select name="seller_id"><option value="">Selecione</option><%refs.sellers.forEach(s=>{%><option value="<%=s.id%>" <%=Number(goal.seller_id)===Number(s.id)?'selected':''%>><%=s.full_name%><%=s.is_active?'':' (inativa)'%></option><%})%></select></label>
-  <div class="daily-goal-fields"><label>Meta da Manhã<input name="morning_value" inputmode="decimal" value="<%=goal.morning_value??''%>"></label><label>Meta da Tarde<input name="afternoon_value" inputmode="decimal" value="<%=goal.afternoon_value??''%>"></label></div>
-  <label>Meta de Receita - Portabilidade / Base<input name="portability_base_value" inputmode="decimal" value="<%=goal.portability_base_value??''%>"></label><label>Meta de Receita - Portabilidade / Fora da Base<input name="portability_out_value" inputmode="decimal" value="<%=goal.portability_out_value??''%>"></label><label>Meta de Receita - Novo / Base<input name="new_base_value" inputmode="decimal" value="<%=goal.new_base_value??''%>"></label><label>Meta de Receita - Novo / Fora da Base<input name="new_out_value" inputmode="decimal" value="<%=goal.new_out_value??''%>"></label><small>Valores em R$; informe o faturamento desejado, não a quantidade de vendas.</small><label>Meta Total<input name="goal_value" inputmode="decimal" value="<%=goal.goal_value||''%>" required></label><label>Data Inicial<input type="date" name="start_date" value="<%=goal.start_date||''%>" required></label><label>Data Final<input type="date" name="end_date" value="<%=goal.end_date||''%>" required></label><div class="form-actions"><a class="button button-secondary" href="/goals">Cancelar</a><button type="submit">Salvar</button></div>
-</form></section><%}else{%><section class="list-panel"><div class="section-heading"><div><h2>Lista de Metas</h2><p>Gerencie os registros cadastrados.</p></div><button class="button button-secondary filter-toggle" type="button" aria-expanded="<%=Object.keys(query).length>0%>" aria-controls="goal-filters">Mostrar filtros</button></div><form id="goal-filters" method="get" class="filter-panel <%=Object.keys(query).length?'is-open':''%>"><label>Tipo<select name="goal_type"><option value="">Todos</option><option value="general">Geral</option><option value="individual">Individual</option></select></label><label>Início<input type="date" name="start_date" value="<%=query.start_date||''%>"></label><label>Fim<input type="date" name="end_date" value="<%=query.end_date||''%>"></label><div class="filter-actions"><a class="button button-ghost" href="/goals">Limpar</a><button type="submit">Filtrar</button></div></form><div class="table-scroll"><table class="data-table"><thead><tr><th>ID</th><th>Tipo</th><th>Período</th><th>Vendedora</th><th>Valor</th><th>Início</th><th>Fim</th><th>Ações</th></tr></thead><tbody><%result.items.forEach(g=>{%><tr><td><%=g.id%></td><td><%=g.goal_type==='general'?'Geral':'Individual'%></td><td><%=g.period_name%></td><td><%=g.seller_name||'—'%></td><td>R$ <%=g.goal_value%></td><td><%=g.start_date%></td><td><%=g.end_date%></td><td><div class="row-actions"><%if(currentUser.role==='admin'){%><a class="button button-secondary" href="/goals/<%=g.id%>/edit">Editar</a><form method="post" action="/goals/<%=g.id%>/delete" data-confirm="Excluir esta meta?"><input type="hidden" name="_csrf" value="<%=csrfToken%>"><button class="button button-danger" type="submit">Excluir</button></form><%}%></div></td></tr><%})%></tbody></table></div><p class="pagination-summary">Página <%=result.pagination.page%> de <%=result.pagination.pages%>.</p></section><%}%></section>
+<%
+const isForm = currentUser.role === 'admin' && (edit || query.tab === 'form');
+const goal = edit || {};
+const brl = (value) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const selected = (actual, expected) => String(actual ?? '') === String(expected) ? 'selected' : '';
+%>
+<header class="page-header">
+  <div>
+    <h1>Metas</h1>
+    <p>Cadastre, visualize e gerencie as metas do sistema.</p>
+  </div>
+</header>
+
+<section class="admin-card management-hub goals-hub">
+  <nav class="tabs" aria-label="Se&ccedil;&otilde;es de metas">
+    <a class="tab <%= !isForm ? 'is-active' : '' %>" aria-current="<%= !isForm ? 'page' : 'false' %>" href="/goals">Lista de Metas</a>
+    <% if (currentUser.role === 'admin') { %>
+      <a class="tab <%= isForm ? 'is-active' : '' %>" aria-current="<%= isForm ? 'page' : 'false' %>" href="/goals?tab=form"><%= edit ? 'Editar Meta' : 'Cadastrar Meta' %></a>
+    <% } %>
+  </nav>
+
+  <% if (isForm) { %>
+    <section class="form-panel goals-form-panel" aria-labelledby="goal-form-title">
+      <div class="goals-panel-heading">
+        <div>
+          <h2 id="goal-form-title"><%= edit ? 'Editar Meta' : 'Cadastrar Meta' %></h2>
+          <p><%= edit ? 'Atualize os dados da meta selecionada.' : 'Preencha os dados para cadastrar uma nova meta.' %></p>
+        </div>
+      </div>
+
+      <form method="post" action="<%= edit ? '/goals/' + edit.id : '/goals' %>" id="goal-form" class="goal-form-grid">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <fieldset class="goal-form-section">
+          <legend>Escopo da meta</legend>
+          <div class="goal-scope-grid">
+            <label for="goal-type">Tipo da Meta
+              <select id="goal-type" name="goal_type" required>
+                <option value="general" <%= selected(goal.goal_type || 'general', 'general') %>>Geral</option>
+                <option value="individual" <%= selected(goal.goal_type, 'individual') %>>Individual</option>
+              </select>
+            </label>
+            <label for="goal-period">Per&iacute;odo
+              <select id="goal-period" name="goal_period_id" required>
+                <option value="">Selecione</option>
+                <% refs.periods.forEach((period) => { %>
+                  <option value="<%= period.id %>" data-code="<%= period.code %>" <%= selected(goal.goal_period_id, period.id) %>><%= period.name %></option>
+                <% }) %>
+              </select>
+            </label>
+            <label class="seller-goal-field" for="goal-seller">Vendedora
+              <select id="goal-seller" name="seller_id">
+                <option value="">Selecione</option>
+                <% refs.sellers.forEach((seller) => { %>
+                  <option value="<%= seller.id %>" <%= selected(goal.seller_id, seller.id) %>><%= seller.full_name %><%= seller.is_active ? '' : ' (inativa)' %></option>
+                <% }) %>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="goal-form-section daily-goal-fields">
+          <legend>Metas por turno</legend>
+          <p class="goal-section-help">Dispon&iacute;veis somente para o per&iacute;odo di&aacute;rio. A soma dos turnos preenchidos deve ser igual &agrave; meta total.</p>
+          <div class="goal-breakdown-grid">
+            <label for="morning-value">Meta da Manh&atilde;
+              <input id="morning-value" type="number" name="morning_value" min="0" step="0.01" inputmode="decimal" value="<%= goal.morning_value ?? '' %>">
+            </label>
+            <label for="afternoon-value">Meta da Tarde
+              <input id="afternoon-value" type="number" name="afternoon_value" min="0" step="0.01" inputmode="decimal" value="<%= goal.afternoon_value ?? '' %>">
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="goal-form-section">
+          <legend>Metas de receita por categoria</legend>
+          <p class="goal-section-help">Preencha somente as categorias aplic&aacute;veis. A soma dos campos preenchidos formar&aacute; a meta total.</p>
+          <div class="goal-breakdown-grid">
+            <label for="portability-base-value">Portabilidade / Base
+              <input id="portability-base-value" type="number" name="portability_base_value" min="0" step="0.01" inputmode="decimal" value="<%= goal.portability_base_value ?? '' %>">
+            </label>
+            <label for="portability-out-value">Portabilidade / Fora da Base
+              <input id="portability-out-value" type="number" name="portability_out_value" min="0" step="0.01" inputmode="decimal" value="<%= goal.portability_out_value ?? '' %>">
+            </label>
+            <label for="new-base-value">Novo / Base
+              <input id="new-base-value" type="number" name="new_base_value" min="0" step="0.01" inputmode="decimal" value="<%= goal.new_base_value ?? '' %>">
+            </label>
+            <label for="new-out-value">Novo / Fora da Base
+              <input id="new-out-value" type="number" name="new_out_value" min="0" step="0.01" inputmode="decimal" value="<%= goal.new_out_value ?? '' %>">
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="goal-form-section">
+          <legend>Total e vig&ecirc;ncia</legend>
+          <div class="goal-total-grid">
+            <label for="goal-value">Meta Total
+              <input id="goal-value" type="number" name="goal_value" min="0" step="0.01" inputmode="decimal" value="<%= goal.goal_value ?? '' %>" required>
+            </label>
+            <label for="goal-start-date">Data Inicial
+              <input id="goal-start-date" type="date" name="start_date" value="<%= goal.start_date || '' %>" required>
+            </label>
+            <label for="goal-end-date">Data Final
+              <input id="goal-end-date" type="date" name="end_date" value="<%= goal.end_date || '' %>" required>
+            </label>
+          </div>
+          <p class="goal-total-help" id="goal-calculation-status" aria-live="polite">Valores em R$; informe o faturamento desejado, n&atilde;o a quantidade de vendas.</p>
+        </fieldset>
+
+        <div class="form-actions goal-form-actions">
+          <a class="button button-secondary" href="/goals">Cancelar</a>
+          <button type="submit"><%= edit ? 'Atualizar' : 'Salvar' %></button>
+        </div>
+      </form>
+    </section>
+  <% } else { %>
+    <section class="list-panel goals-list-panel" aria-labelledby="goals-list-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="goals-list-title">Lista de Metas</h2>
+          <p>Gerencie os registros cadastrados.</p>
+        </div>
+        <button class="button button-secondary filter-toggle" type="button" aria-expanded="<%= Object.keys(query).some((key) => key !== 'page') %>" aria-controls="goal-filters"><%= Object.keys(query).some((key) => key !== 'page') ? 'Ocultar filtros' : 'Mostrar filtros' %></button>
+      </div>
+
+      <form id="goal-filters" method="get" class="filter-panel filter-panel--goals <%= Object.keys(query).some((key) => key !== 'page') ? 'is-open' : '' %>">
+        <label for="filter-goal-type">Tipo
+          <select id="filter-goal-type" name="goal_type">
+            <option value="">Todos</option>
+            <option value="general" <%= selected(query.goal_type, 'general') %>>Geral</option>
+            <option value="individual" <%= selected(query.goal_type, 'individual') %>>Individual</option>
+          </select>
+        </label>
+        <label for="filter-goal-period">Per&iacute;odo
+          <select id="filter-goal-period" name="goal_period_id">
+            <option value="">Todos</option>
+            <% refs.periods.forEach((period) => { %><option value="<%= period.id %>" <%= selected(query.goal_period_id, period.id) %>><%= period.name %></option><% }) %>
+          </select>
+        </label>
+        <label for="filter-goal-seller">Vendedora
+          <select id="filter-goal-seller" name="seller_id">
+            <option value="">Todas</option>
+            <% refs.sellers.forEach((seller) => { %><option value="<%= seller.id %>" <%= selected(query.seller_id, seller.id) %>><%= seller.full_name %></option><% }) %>
+          </select>
+        </label>
+        <label for="filter-goal-start">Data Inicial
+          <input id="filter-goal-start" type="date" name="start_date" value="<%= query.start_date || '' %>">
+        </label>
+        <label for="filter-goal-end">Data Final
+          <input id="filter-goal-end" type="date" name="end_date" value="<%= query.end_date || '' %>">
+        </label>
+        <div class="filter-actions">
+          <a class="button button-ghost" href="/goals">Limpar</a>
+          <button type="submit">Filtrar</button>
+        </div>
+      </form>
+
+      <div class="table-scroll">
+        <table class="data-table goals-table">
+          <thead><tr><th>ID</th><th>Tipo</th><th>Per&iacute;odo</th><th>Vendedora</th><th>Valor</th><th>In&iacute;cio</th><th>Fim</th><th>A&ccedil;&otilde;es</th></tr></thead>
+          <tbody>
+            <% if (!result.items.length) { %>
+              <tr><td class="empty-cell" colspan="8">Nenhuma meta encontrada para os filtros aplicados.</td></tr>
+            <% } %>
+            <% result.items.forEach((item) => { %>
+              <tr>
+                <td><%= item.id %></td>
+                <td><span class="status-badge <%= item.goal_type === 'general' ? 'goal-general' : 'goal-individual' %>"><%= item.goal_type === 'general' ? 'Geral' : 'Individual' %></span></td>
+                <td><%= item.period_name %></td>
+                <td><% if (item.seller_name) { %><%= item.seller_name %><% } else { %>&mdash;<% } %></td>
+                <td><strong><%= brl(item.goal_value) %></strong></td>
+                <td><%= item.start_date %></td>
+                <td><%= item.end_date %></td>
+                <td><div class="row-actions"><% if (currentUser.role === 'admin') { %><a class="button button-secondary" href="/goals/<%= item.id %>/edit">Editar</a><form method="post" action="/goals/<%= item.id %>/delete" data-confirm="Excluir esta meta?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="button button-danger" type="submit">Excluir</button></form><% } %></div></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <p class="pagination-summary">P&aacute;gina <%= result.pagination.page %> de <%= result.pagination.pages %> &middot; <%= result.pagination.total %> meta(s).</p>
+    </section>
+  <% } %>
+</section>

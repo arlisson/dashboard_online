@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="csrf-token" content="<%= csrfToken %>">
   <title><%= title %> — Dashboard Avance</title>
-  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/assets/css/app.css?v=20260727-1">
   <link rel="stylesheet" href="/assets/css/responsive-fix.css">
+  <% if (page === 'pages/goals') { %><link rel="stylesheet" href="/assets/css/goals.css?v=20260727-3"><% } %>
   <% if (page === 'pages/dashboard') { %><link rel="stylesheet" href="/assets/css/dashboard.css?v=20260724-15"><% } %>
 </head>
 <body class="<%= page === 'pages/dashboard' ? 'theme-dashboard' : 'theme-admin' %>" data-user-id="<%= currentUser?.id || '' %>" data-timezone="<%= typeof timezone !== 'undefined' ? timezone : 'America/Sao_Paulo' %>">
@@ -14,6 +15,6 @@
   <%- include('../partials/navbar') %>
   <main id="content" class="page-main <%= page === 'pages/sales' ? 'page-main--wide' : '' %>"><%- include('../' + page) %></main>
   <% if (currentUser) { %><button type="button" class="sound-control" id="sound-control" aria-pressed="false">Ativar sons</button><footer class="site-footer">Dashboard da Empresa</footer><% } %>
-  <script src="/assets/js/app.js" defer></script><script src="/assets/js/management-tabs.js" defer></script><% if (page === 'pages/dashboard') { %><script src="/assets/vendor/canvas-confetti.js?v=1.9.3" defer></script><% } %><script src="/assets/js/events.js?v=20260727-4" defer></script>
+  <script src="/assets/js/app.js?v=20260727-1" defer></script><script src="/assets/js/management-tabs.js" defer></script><% if (page === 'pages/goals') { %><script src="/assets/js/goals.js?v=20260727-3" defer></script><% } %><% if (page === 'pages/dashboard') { %><script src="/assets/vendor/canvas-confetti.js?v=1.9.3" defer></script><% } %><script src="/assets/js/events.js?v=20260727-4" defer></script>
 </body>
 </html>
