@@ -24,6 +24,10 @@ function createApp({ db, env, registerRoutes } = {}) {
   app.use(compression());
   app.use(express.json({ limit: '256kb' }));
   app.use(express.urlencoded({ extended: false, limit: '256kb' }));
+  app.get('/assets/vendor/canvas-confetti.js', (_req, res) => {
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.sendFile(require.resolve('canvas-confetti/dist/confetti.browser.js'));
+  });
   app.use('/assets', express.static(path.join(__dirname, 'public', 'assets'), { immutable: true, maxAge: '1y', index: false }));
   app.get('/health/live', (_req, res) => res.json({ ok: true }));
   app.get('/health/ready', async (_req, res) => {

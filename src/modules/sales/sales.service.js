@@ -3,7 +3,7 @@
 const { AppError } = require('../../shared/errors');
 const { getSaleShift } = require('../../shared/commercial-time');
 const { calculateTotal } = require('../../shared/money');
-const { sortRanking } = require('./ranking');
+const { sortRanking, didOvertake } = require('./ranking');
 
 const fkDefinitions = [['seller_id','sellers'],['service_id','services'],['operator_id','operators'],['sale_type_id','sale_types']];
 
@@ -65,12 +65,6 @@ async function rankingSnapshot(db, date) {
   return sortRanking(rows);
 }
 
-function newFirstPlaceSeller(before, after) {
-  const previousLeader = before[0];
-  const currentLeader = after[0];
-  if (!previousLeader || !currentLeader) return null;
-  return Number(previousLeader.seller_id) === Number(currentLeader.seller_id) ? null : Number(currentLeader.seller_id);
-}
 
 async function applicableDailyGoals(db, date, sellerId) {
   const period = await db('goal_periods').where({ code: 'daily' }).first();
@@ -120,8 +114,10 @@ async function mutateSale(db, { operation, id, input, userId }) {
     if (operation === 'create') await emit(trx, 'sale_created', { saleId, date: targetDate, createdBy: userId });
     if (operation === 'create') for (const date of dates) {
       const after = await rankingSnapshot(trx, date);
-      const overtaker = newFirstPlaceSeller(beforeRankings.get(date), after);
-      if (overtaker) { eventResult.rankingOvertake = true; await emit(trx, 'ranking_overtake', { saleId, date, sellerId: overtaker, createdBy: userId }); }
+      if (didOvertake(beforeRankings.get(date), after, sellerId)) {
+        eventResult.rankingOvertake = true;
+        await emit(trx, 'ranking_overtake', { saleId, date, sellerId, createdBy: userId });
+      }
     }
     if (operation === 'create' && goals.length) {
       const reachedGoalIds = [];
@@ -145,4 +141,4 @@ async function listReferences(db, current) {
   return result;
 }
 
-module.exports = { applyFilters, listSales, getSale, saleData, rankingSnapshot, applicableDailyGoal, applicableDailyGoals, newFirstPlaceSeller, mutateSale, listReferences };
+module.exports = { applyFilters, listSales, getSale, saleData, rankingSnapshot, applicableDailyGoal, applicableDailyGoals, mutateSale, listReferences };

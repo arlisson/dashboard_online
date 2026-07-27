@@ -9,7 +9,7 @@ if (userId) {
   const reminderKey = `avance.reminder-30.v2.${userId}`;
   const pendingKey = 'avance.pending-dashboard-sounds.v1';
   const handledKey = 'avance.handled-sale.v1';
-  const enabledKey = 'avance.sounds-enabled.v1';
+  const enabledKey = `avance.sounds-enabled.v2.${userId}`;
   const soundControl = document.querySelector('#sound-control');
   const isDashboard = window.location.pathname === '/';
   const isSalesPage = window.location.pathname === '/sales' || window.location.pathname.startsWith('/sales/');
@@ -19,10 +19,16 @@ if (userId) {
     daily_goal_reached: '/assets/sounds/meta.mp3',
     reminder_30: '/assets/sounds/audio_30.mp3'
   };
+  const soundPlaybackRules = {
+    sale_created: { releaseAfterMs: 2000, stopAfterMs: 2000 },
+    ranking_overtake: { releaseAfterMs: 1600 },
+    daily_goal_reached: { releaseAfterMs: 30000, stopAfterMs: 30000 }
+  };
 
   let lastId = 0;
   let audioContext;
   let soundBuffers = {};
+  let soundBufferPromises = {};
   let soundsEnabled = false;
   let unlockPromise;
   let soundQueue = Promise.resolve();
@@ -42,6 +48,35 @@ if (userId) {
     soundControl.setAttribute('aria-pressed', String(enabled));
   };
 
+  const loadSound = (type) => {
+    if (soundBuffers[type]) return Promise.resolve(soundBuffers[type]);
+    if (soundBufferPromises[type]) return soundBufferPromises[type];
+    const file = soundFiles[type];
+    if (!file || !audioContext) return Promise.reject(new Error('Áudio indisponível.'));
+    soundBufferPromises[type] = fetch(file, { cache: 'force-cache' })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Falha ao carregar ${file}`);
+        return response.arrayBuffer();
+      })
+      .then((data) => audioContext.decodeAudioData(data))
+      .then((buffer) => {
+        soundBuffers[type] = buffer;
+        return buffer;
+      })
+      .catch((error) => {
+        delete soundBufferPromises[type];
+        throw error;
+      });
+    return soundBufferPromises[type];
+  };
+
+  const preloadSounds = () => {
+    if (isSalesPage) loadSound('sale_created').catch(() => {});
+    if (isDashboard) {
+      for (const type of ['ranking_overtake', 'daily_goal_reached', 'reminder_30']) loadSound(type).catch(() => {});
+    }
+  };
+
   const unlockAudio = () => {
     if (soundsEnabled && audioContext?.state === 'running') return Promise.resolve(true);
     if (unlockPromise) return unlockPromise;
@@ -51,16 +86,11 @@ if (userId) {
     unlockPromise = (async () => {
       try {
         await audioContext.resume();
-        if (Object.keys(soundBuffers).length !== Object.keys(soundFiles).length) {
-          const loaded = await Promise.all(Object.entries(soundFiles).map(async ([type, file]) => {
-            const response = await fetch(file, { cache: 'force-cache' });
-            if (!response.ok) throw new Error(`Falha ao carregar ${file}`);
-            return [type, await audioContext.decodeAudioData(await response.arrayBuffer())];
-          }));
-          soundBuffers = Object.fromEntries(loaded);
-        }
         soundsEnabled = audioContext.state === 'running';
-        if (soundsEnabled) sessionStorage.setItem(enabledKey, '1');
+        if (soundsEnabled) {
+          localStorage.setItem(enabledKey, '1');
+          preloadSounds();
+        }
         setSoundControl(soundsEnabled);
         return soundsEnabled;
       } catch {
@@ -74,31 +104,47 @@ if (userId) {
     return unlockPromise;
   };
 
-  const playNow = (type) => new Promise((resolve) => {
+  const playNow = async (type) => {
     const file = soundFiles[type];
-    if (!file) return resolve(false);
-    const buffer = soundBuffers[type];
-    if (soundsEnabled && buffer && audioContext?.state === 'running') {
-      const source = audioContext.createBufferSource();
-      let finished = false;
-      const finish = () => { if (!finished) { finished = true; resolve(true); } };
-      source.buffer = buffer;
-      source.connect(audioContext.destination);
-      source.addEventListener('ended', finish, { once: true });
-      source.start();
-      window.setTimeout(finish, Math.ceil(buffer.duration * 1000) + 1000);
-      return;
+    if (!file) return false;
+    const rule = soundPlaybackRules[type] || {};
+    let buffer = soundBuffers[type];
+    if (soundsEnabled && audioContext?.state === 'running' && !buffer) {
+      try { buffer = await loadSound(type); } catch {}
     }
 
-    const audio = new Audio(file);
-    let finished = false;
-    const finish = (played) => { if (!finished) { finished = true; resolve(played); } };
-    audio.preload = 'auto';
-    audio.addEventListener('ended', () => finish(true), { once: true });
-    audio.addEventListener('error', () => finish(false), { once: true });
-    audio.play().catch(() => { setSoundControl(false); finish(false); });
-    window.setTimeout(() => { audio.pause(); finish(false); }, 60000);
-  });
+    return new Promise((resolve) => {
+      let finished = false;
+      const timers = [];
+      const finish = (played) => {
+        if (finished) return;
+        finished = true;
+        for (const timer of timers) clearTimeout(timer);
+        resolve(played);
+      };
+
+      if (soundsEnabled && buffer && audioContext?.state === 'running') {
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContext.destination);
+        source.addEventListener('ended', () => finish(true), { once: true });
+        source.start();
+        if (rule.releaseAfterMs) timers.push(window.setTimeout(() => finish(true), rule.releaseAfterMs));
+        if (rule.stopAfterMs) window.setTimeout(() => { try { source.stop(); } catch {} }, rule.stopAfterMs);
+        timers.push(window.setTimeout(() => finish(true), Math.ceil(buffer.duration * 1000) + 1000));
+        return;
+      }
+
+      const audio = new Audio(file);
+      audio.preload = 'auto';
+      audio.addEventListener('ended', () => finish(true), { once: true });
+      audio.addEventListener('error', () => finish(false), { once: true });
+      audio.play().catch(() => { setSoundControl(false); finish(false); });
+      if (rule.releaseAfterMs) timers.push(window.setTimeout(() => finish(true), rule.releaseAfterMs));
+      if (rule.stopAfterMs) window.setTimeout(() => { audio.pause(); audio.currentTime = 0; }, rule.stopAfterMs);
+      timers.push(window.setTimeout(() => { audio.pause(); finish(false); }, 60000));
+    });
+  };
 
   const queueSound = (type, onStart) => {
     const task = soundQueue.catch(() => false).then(async () => {
@@ -109,10 +155,76 @@ if (userId) {
     return task;
   };
 
+  const createVictoryFlash = () => {
+    const flash = document.createElement('div');
+    flash.className = 'ranking-victory-flash';
+    flash.setAttribute('aria-hidden', 'true');
+    body.appendChild(flash);
+    requestAnimationFrame(() => flash.classList.add('is-visible'));
+    setTimeout(() => {
+      flash.classList.remove('is-visible');
+      setTimeout(() => flash.remove(), 450);
+    }, 260);
+  };
+
+  const launchOvertakeFireworks = () => {
+    if (typeof window.confetti !== 'function') return;
+
+    const duration = 3200;
+    const animationEnd = Date.now() + duration;
+    const randomInRange = (min, max) => Math.random() * (max - min) + min;
+    const colors = ['#facc15', '#f97316', '#ef4444', '#ffffff', '#fde68a'];
+    const fire = (options) => window.confetti({ zIndex: 9999, colors, ...options });
+
+    createVictoryFlash();
+    fire({ particleCount: 140, spread: 90, startVelocity: 42, scalar: 1.25, ticks: 140, origin: { x: 0.5, y: 0.95 } });
+    fire({ particleCount: 90, angle: 60, spread: 70, startVelocity: 38, scalar: 1.1, ticks: 120, origin: { x: 0, y: 0.75 } });
+    fire({ particleCount: 90, angle: 120, spread: 70, startVelocity: 38, scalar: 1.1, ticks: 120, origin: { x: 1, y: 0.75 } });
+
+    const interval = setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
+      if (timeLeft <= 0) {
+        clearInterval(interval);
+        return;
+      }
+      const particleCount = Math.max(20, Math.round(50 * (timeLeft / duration)));
+      fire({
+        particleCount,
+        angle: randomInRange(50, 75),
+        spread: randomInRange(60, 90),
+        startVelocity: randomInRange(28, 42),
+        scalar: randomInRange(0.95, 1.2),
+        ticks: 110,
+        origin: { x: 0, y: randomInRange(0.45, 0.85) }
+      });
+      fire({
+        particleCount,
+        angle: randomInRange(105, 130),
+        spread: randomInRange(60, 90),
+        startVelocity: randomInRange(28, 42),
+        scalar: randomInRange(0.95, 1.2),
+        ticks: 110,
+        origin: { x: 1, y: randomInRange(0.45, 0.85) }
+      });
+      fire({
+        particleCount: Math.round(particleCount * 0.7),
+        spread: randomInRange(75, 105),
+        startVelocity: randomInRange(24, 34),
+        scalar: 1,
+        ticks: 100,
+        origin: { x: randomInRange(0.25, 0.75), y: 0.95 }
+      });
+    }, 260);
+  };
+
   const celebrate = (type) => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    body.classList.add(type === 'ranking_overtake' ? 'flash' : 'celebrate');
-    setTimeout(() => body.classList.remove('flash', 'celebrate'), 1200);
+    if (type === 'ranking_overtake') {
+      launchOvertakeFireworks();
+      return;
+    }
+    body.classList.add('celebrate');
+    setTimeout(() => body.classList.remove('celebrate'), 1200);
   };
 
   const handledSaleId = () => {
@@ -169,10 +281,15 @@ if (userId) {
     if (!pending?.sounds?.length) return;
     drainingPending = true;
     try {
+      if (!pending.celebrated) {
+        for (const type of pending.sounds) celebrate(type);
+        pending.celebrated = true;
+        sessionStorage.setItem(pendingKey, JSON.stringify(pending));
+      }
       await unlockAudio();
       while (pending.sounds.length) {
         const type = pending.sounds[0];
-        const played = await queueSound(type, () => celebrate(type));
+        const played = await queueSound(type);
         if (!played) return;
         pending.sounds.shift();
         sessionStorage.setItem(pendingKey, JSON.stringify(pending));
@@ -209,8 +326,8 @@ if (userId) {
     const time = localBusinessTime();
     const hour = Number(time.hour);
     const minute = Number(time.minute);
-    const withinMorning = hour >= 8 && hour < 12;
-    const withinAfternoon = (hour === 13 && minute >= 30) || (hour >= 14 && hour < 17) || (hour === 17 && (minute === 0 || minute === 30));
+    const withinMorning = hour >= 9 && (hour < 11 || (hour === 11 && minute <= 30));
+    const withinAfternoon = (hour === 13 && minute >= 30) || (hour >= 14 && hour < 17) || (hour === 17 && minute === 0);
     if ((minute !== 0 && minute !== 30) || (!withinMorning && !withinAfternoon)) return;
     const slot = `${time.year}-${time.month}-${time.day}-${hour}-${minute}`;
     if (localStorage.getItem(reminderKey) === slot || reminderInFlightSlot === slot) return;
@@ -224,11 +341,11 @@ if (userId) {
 
   claimAudioLeadership();
   window.setInterval(claimAudioLeadership, 5000);
-  window.setInterval(playHalfHourReminder, 1000);
+  window.setInterval(playHalfHourReminder, 15000);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') playHalfHourReminder();
   });
-  if (sessionStorage.getItem(enabledKey) === '1') activateSounds();
+  if (localStorage.getItem(enabledKey) === '1') activateSounds();
   drainPendingDashboardSounds();
 
   let polling = false;

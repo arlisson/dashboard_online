@@ -100,19 +100,12 @@ if (form) {
       await unlockPromise;
       submitButton.textContent = 'Tocando venda...';
       const finish = () => window.location.assign('/');
-      const played = await audioApi.play('sale_created');
+      const played = await audioApi.play('sale_created').catch(() => false);
       if (played) return finish();
 
-      showSequenceMessage('Venda registrada. Clique em “Ativar sons” para concluir e abrir o dashboard.');
+      showSequenceMessage('Venda registrada. O som não pôde ser reproduzido; abrindo o dashboard.');
       submitButton.textContent = 'Venda registrada';
-      const soundControl = document.querySelector('#sound-control');
-      soundControl?.focus();
-      soundControl?.addEventListener('click', async () => {
-        if (await audioApi.unlock()) {
-          showSequenceMessage('Tocando o som da venda...');
-          if (await audioApi.play('sale_created')) finish();
-        }
-      }, { once: true });
+      window.setTimeout(finish, 1500);
     } catch (error) {
       if (!saleRegistered) {
         localStorage.removeItem(localFlowKey);

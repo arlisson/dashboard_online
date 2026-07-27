@@ -12,7 +12,8 @@ function sortRanking(rows) { return [...rows].sort(compareRanking); }
 function didOvertake(before, after, sellerId) {
   const oldIndex = before.findIndex((row) => Number(row.seller_id) === Number(sellerId));
   const newIndex = after.findIndex((row) => Number(row.seller_id) === Number(sellerId));
-  return oldIndex >= 0 && newIndex >= 0 && newIndex < oldIndex;
+  const previousIndex = oldIndex >= 0 ? oldIndex : before.length;
+  return newIndex >= 0 && newIndex < previousIndex;
 }
 
 module.exports = { compareRanking, sortRanking, didOvertake };
