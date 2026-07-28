@@ -13,8 +13,8 @@
     "migrate:status": "knex migrate:list --knexfile knexfile.js",
     "migrate:rollback": "knex migrate:rollback --knexfile knexfile.js",
     "seed:reference": "knex seed:run --knexfile knexfile.js",
-    "test": "node --test",
-    "test:run": "node --test",
+    "test": "node --test --test-concurrency=1",
+    "test:run": "node --test --test-concurrency=1",
     "legacy:inspect": "node scripts/migrate-legacy-sqlite.js --inspect",
     "legacy:migrate": "node scripts/migrate-legacy-sqlite.js"
   },
