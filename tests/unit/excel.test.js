@@ -34,3 +34,32 @@ test('importa exportacao do dashboard antigo e grava os dados transformados',asy
     assert.equal(await db('goal_periods').where({code:'morning'}).first(),undefined);
   }finally{await db.destroy();}
 });
+test('importacao preserva fotos e icones atuais dos cadastros correspondentes',async()=>{
+  const data={
+    sellers:[{id:1,full_name:'Nayara',photo_media_id:null,is_active:true}],
+    services:[{id:1,code:'internet',name:'Internet',icon_media_id:null,is_active:true}],
+    operators:[{id:1,code:'vivo',name:'Vivo',icon_media_id:null,is_active:true}],
+    sale_types:[{id:1,code:'new',name:'Novo',icon_media_id:null,is_active:true},{id:2,code:'portability',name:'Portabilidade',icon_media_id:null,is_active:true}],
+    goal_periods:[{id:1,code:'daily',name:'Diario',is_active:true}],
+    goals:[],
+    sales:[]
+  };
+  const buffer=Buffer.from(await createWorkbook(data).xlsx.writeBuffer());
+  const db=knex({client:'better-sqlite3',connection:{filename:':memory:'},useNullAsDefault:true});
+  try{
+    await db.schema.createTable('users',table=>table.integer('id'));
+    await db.schema.createTable('media_files',table=>table.integer('id'));
+    for(const spec of Object.values(specs))await db.schema.createTable(spec.table,table=>{for(const column of spec.columns)column==='id'?table.integer(column).primary():table.text(column).nullable();});
+    await db('media_files').insert([{id:11},{id:12},{id:13},{id:14}]);
+    await db('sellers').insert({id:99,full_name:'Nayara',photo_media_id:11});
+    await db('services').insert({id:98,code:'internet',name:'Internet antiga',icon_media_id:12});
+    await db('operators').insert({id:97,code:'vivo',name:'Vivo antiga',icon_media_id:13});
+    await db('sale_types').insert({id:96,code:'new',name:'Novo antigo',icon_media_id:14});
+    const preview=await createPreview(buffer,{maxRows:100});
+    await confirmImport(db,preview.previewId);
+    assert.equal(Number((await db('sellers').where({id:1}).first()).photo_media_id),11);
+    assert.equal(Number((await db('services').where({id:1}).first()).icon_media_id),12);
+    assert.equal(Number((await db('operators').where({id:1}).first()).icon_media_id),13);
+    assert.equal(Number((await db('sale_types').where({id:1}).first()).icon_media_id),14);
+  }finally{await db.destroy();}
+});
