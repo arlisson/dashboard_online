@@ -112,7 +112,7 @@ async function targetFor(db, range, sellerId) {
   if (!period) return null;
   let query = db('goals').where({ goal_period_id: period.id }).whereNull('deleted_at');
   if (range.period === 'custom') query.where('start_date', '>=', range.start).where('end_date', '<=', range.end);
-  else query.where('start_date', '<=', range.start).where('end_date', '>=', range.end);
+  else query.where('start_date', '<=', range.end).where('end_date', '>=', range.start);
   if (sellerId) {
     const individuals = await query.clone().where({ goal_type: 'individual', seller_id: Number(sellerId) });
     if (individuals.length) return combineGoals(individuals);
