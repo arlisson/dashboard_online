@@ -8,18 +8,18 @@ const morning = dashboard.data.shifts.morning || { records: 0, units: 0, revenue
 const afternoon = dashboard.data.shifts.afternoon || { records: 0, units: 0, revenue: 0, withDocRecords: 0, withoutDocRecords: 0, withDocRevenue: 0, withoutDocRevenue: 0 };
 const leader = dashboard.data.ranking[0];
 const operatorTotal = dashboard.data.operators.reduce((sum, item) => sum + item.revenue, 0) || 1;
-const periodLabels = { today: 'Hoje', week: 'Semana atual', biweekly: 'Quinzena atual', month: 'Mês atual', custom: 'Personalizado' };
+const periodLabels = { today: 'Hoje', morning: 'Manhã de hoje', afternoon: 'Tarde de hoje', week: 'Semana atual', biweekly: 'Quinzena atual', month: 'Mês atual', custom: 'Personalizado' };
 %>
 <section class="sales-dashboard" aria-label="Dashboard de vendas">
   <section class="sales-dashboard__top" aria-label="Resumo de vendas">
-    <% [[morning, 'Manhã', 'morning', '08:00 - 12:00', dashboard.target?.morning_value], [afternoon, 'Tarde', 'afternoon', '13:30 - 17:30', dashboard.target?.afternoon_value], [dashboard.data.totals, 'Total do mês', 'total', 'Meta diária', dashboard.target?.goal_value]].forEach(([item, label, tone, schedule, goal]) => { %>
+    <% [[morning, 'Manhã', 'morning', '08:00 - 12:00', dashboard.target?.morning_value], [afternoon, 'Tarde', 'afternoon', '13:30 - 17:30', dashboard.target?.afternoon_value], [dashboard.data.totals, 'Total do dia', 'total', 'Meta diária', dashboard.target?.goal_value]].forEach(([item, label, tone, schedule, goal]) => { %>
       <article class="dashboard-card shift-kpi shift-kpi--<%= tone %>">
         <header class="dashboard-card__header"><h2><%= label %></h2><span class="dashboard-pill"><%= schedule %></span></header>
         <div class="shift-kpi__documents">
           <div><small>Com doc</small><strong><%= item.withDocRecords %></strong><b><%= brl(item.withDocRevenue) %></b></div>
           <div><small>Sem doc</small><strong><%= item.withoutDocRecords %></strong><b><%= brl(item.withoutDocRevenue) %></b></div>
         </div>
-        <div class="shift-kpi__total"><small><%= tone === 'morning' ? 'Vendas da manhã' : tone === 'afternoon' ? 'Vendas da tarde' : 'Vendas totais do mês' %></small><strong><%= brl(item.revenue) %></strong></div>
+        <div class="shift-kpi__total"><small><%= tone === 'morning' ? 'Vendas da manhã' : tone === 'afternoon' ? 'Vendas da tarde' : 'Vendas totais do dia' %></small><strong><%= brl(item.revenue) %></strong></div>
         <div class="shift-kpi__goal shift-kpi__goal--<%= goalState(item.revenue, goal) %>"><small><%= tone === 'morning' ? 'Meta da manhã' : tone === 'afternoon' ? 'Meta da tarde' : 'Meta a bater' %></small><strong><%= target(goal) %></strong></div>
       </article>
     <% }) %>
@@ -72,7 +72,7 @@ const periodLabels = { today: 'Hoje', week: 'Semana atual', biweekly: 'Quinzena 
     <div class="sales-results__toolbar">
       <h2>Resultado de vendas</h2>
       <form method="get" class="sales-results__filters" id="dashboard-filters">
-        <label>Período<select name="period" id="dashboard-period"><% [['today', 'Hoje'], ['week', 'Semana'], ['biweekly', 'Quinzena'], ['month', 'Mês'], ['custom', 'Personalizado']].forEach(([value, label]) => { %><option value="<%= value %>" <% if ((query.period || 'today') === value) { %>selected<% } %>><%= label %></option><% }) %></select></label>
+        <label>Período<select name="period" id="dashboard-period"><% [['today', 'Hoje'], ['morning', 'Manhã'], ['afternoon', 'Tarde'], ['week', 'Semana'], ['biweekly', 'Quinzena'], ['month', 'Mês'], ['custom', 'Personalizado']].forEach(([value, label]) => { %><option value="<%= value %>" <% if ((query.period || 'today') === value) { %>selected<% } %>><%= label %></option><% }) %></select></label>
         <label>Vendedora<select name="seller_id"><option value="">Todas</option><% refs.sellers.forEach((item) => { %><option value="<%= item.id %>" <% if (Number(query.seller_id) === Number(item.id)) { %>selected<% } %>><%= item.full_name %></option><% }) %></select></label>
         <label>Documento<select name="has_doc"><option value="">Todos</option><option value="true" <% if (query.has_doc === 'true') { %>selected<% } %>>Com doc</option><option value="false" <% if (query.has_doc === 'false') { %>selected<% } %>>Sem doc</option></select></label>
         <label>Base<select name="is_base_sale"><option value="">Todas</option><option value="true" <% if (query.is_base_sale === 'true') { %>selected<% } %>>Base</option><option value="false" <% if (query.is_base_sale === 'false') { %>selected<% } %>>Fora da base</option></select></label>
@@ -83,7 +83,7 @@ const periodLabels = { today: 'Hoje', week: 'Semana atual', biweekly: 'Quinzena 
         <label class="dashboard-custom-date" <% if ((query.period || 'today') !== 'custom') { %>hidden<% } %>>Fim<input type="date" name="end_date" value="<%= query.end_date || '' %>"></label>
         <a href="/" class="dashboard-filter-button dashboard-filter-button--clear">Limpar</a><button type="submit" class="dashboard-filter-button">Aplicar</button>
       </form>
-      <p class="sales-results__goal">Meta do mês: <strong><%= target(dashboard.target?.goal_value) %></strong></p>
+      <p class="sales-results__goal"><%= dashboard.range.shift === 'morning' ? 'Meta da manhã' : dashboard.range.shift === 'afternoon' ? 'Meta da tarde' : 'Meta do período' %>: <strong><%= target(dashboard.targetValue) %></strong></p>
     </div>
     <% if (dashboard.goalFilterWarning) { %><p class="dashboard-warning">O realizado está filtrado; a meta não é ajustada por estas dimensões.</p><% } %>
     <div class="ranking-scroll">

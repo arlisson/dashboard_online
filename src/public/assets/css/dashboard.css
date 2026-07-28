@@ -72,6 +72,7 @@
 .sales-results__filters{display:flex;flex:1 1 auto;align-items:flex-end;justify-content:flex-end;gap:7px}
 .sales-results__filters label{display:grid;flex:0 1 108px;gap:3px;color:#aebbd0;font-size:.58rem;font-weight:700}
 .sales-results__filters select,.sales-results__filters input{width:100%;height:31px;min-height:31px;padding:5px 8px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:rgba(255,255,255,.06);color:#f8fbff;font-size:.68rem}
+.sales-results__filters select option{background:#fff;color:#172033}
 .sales-results__filters select:focus,.sales-results__filters input:focus{border-color:rgba(96,165,250,.55);outline:0;box-shadow:0 0 0 3px rgba(96,165,250,.12)}
 .dashboard-custom-date[hidden]{display:none}
 .dashboard-filter-button{display:inline-flex;align-items:center;justify-content:center;height:31px;min-height:31px;padding:5px 10px;border:0;border-radius:9px;background:linear-gradient(180deg,#4385f5,#1d5bce);color:#fff;text-decoration:none;font-size:.68rem;font-weight:800;white-space:nowrap}.dashboard-filter-button--clear{background:#59657a}
