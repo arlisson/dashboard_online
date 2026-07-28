@@ -20,7 +20,7 @@ const periodLabels = { today: 'Hoje', morning: 'Manhã de hoje', afternoon: 'Tar
           <div><small>Sem doc</small><strong><%= item.withoutDocRecords %></strong><b><%= brl(item.withoutDocRevenue) %></b></div>
         </div>
         <div class="shift-kpi__total"><small><%= tone === 'morning' ? 'Vendas da manhã' : tone === 'afternoon' ? 'Vendas da tarde' : 'Vendas totais do dia' %></small><strong><%= brl(item.revenue) %></strong></div>
-        <div class="shift-kpi__goal shift-kpi__goal--<%= goalState(item.revenue, goal) %>"><small><%= tone === 'morning' ? 'Meta da manhã' : tone === 'afternoon' ? 'Meta da tarde' : 'Meta a bater' %></small><strong><%= target(goal) %></strong></div>
+        <div class="shift-kpi__goal shift-kpi__goal--<%= goalState(item.revenue, goal) %>"><div class="shift-kpi__goal-heading"><small><%= tone === 'morning' ? 'Meta da manhã' : tone === 'afternoon' ? 'Meta da tarde' : 'Meta a bater' %></small><% if (goalState(item.revenue, goal) === 'success') { %><span class="shift-kpi__goal-achieved">✓ Meta batida!</span><% } %></div><strong><%= target(goal) %></strong></div>
       </article>
     <% }) %>
 

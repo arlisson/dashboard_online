@@ -35,6 +35,9 @@
 .shift-kpi__goal--danger{border-color:rgba(248,113,113,.42);background:rgba(239,68,68,.14)}
 .shift-kpi__goal--warning{border-color:rgba(251,191,36,.42);background:rgba(245,158,11,.16)}
 .shift-kpi__goal--success{border-color:rgba(74,222,128,.34);background:rgba(34,197,94,.14)}
+.shift-kpi__goal-heading{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.shift-kpi__goal-heading small{min-width:0;margin-bottom:3px}
+.shift-kpi__goal-achieved{display:inline-flex;flex:0 0 auto;align-items:center;padding:2px 6px;border:1px solid rgba(74,222,128,.38);border-radius:999px;background:rgba(34,197,94,.2);color:#86efac;font-size:.58rem;font-weight:900;line-height:1.2;white-space:nowrap}
 .revenue-goals{grid-column:span 3;min-height:295px;padding:12px;border-color:rgba(96,165,250,.25)}
 .revenue-goals__list{display:grid;gap:7px}
 .revenue-goals__list>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;min-height:49px;padding:8px 10px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.055)}
