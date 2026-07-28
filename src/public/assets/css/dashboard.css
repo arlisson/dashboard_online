@@ -190,9 +190,9 @@
 .sales-dashboard .period-countdown__box small{font-size:.72rem}
 .sales-dashboard .dashboard-performance__metrics small{font-size:.67rem}
 .sales-dashboard .dashboard-performance__metrics strong{font-size:.89rem}
-.sales-dashboard .dashboard-gauge text{font-size:14px}
-.sales-dashboard .dashboard-gauge>strong{font-size:1rem}
-.sales-dashboard .dashboard-gauge>small{font-size:.75rem}
+.sales-dashboard .dashboard-gauge text{font-size:18px}
+.sales-dashboard .dashboard-gauge>strong{font-size:1.1rem;line-height:1.2}
+.sales-dashboard .dashboard-gauge>small{font-size:.95rem;line-height:1.25}
 .sales-dashboard .operator-chart-tooltip>strong{font-size:.79rem}
 .sales-dashboard .operator-chart-tooltip>span,.sales-dashboard .operator-chart-tooltip>small{font-size:.72rem}
 .theme-dashboard .site-footer{font-size:1.04rem}
