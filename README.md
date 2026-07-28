@@ -94,6 +94,23 @@ As APIs ficam em `/api/v1/{dashboard,sellers,services,operators,sale-types,sales
 
 Listas aceitam `page` e `page_size` (máximo 100). `GET /api/v1/dashboard/events` é SSE autenticado, aceita `Last-Event-ID` e envia `sale_created`, `ranking_overtake` e `daily_goal_reached`. `/poll` é fallback. O navegador grava o último ID por versão/usuário para consumo idempotente.
 
+## Integracao CRM
+
+Administradores criam e revogam chaves em **Integracoes**. A chave completa aparece uma unica vez e deve ficar somente no cofre de segredos do CRM. Ela permite somente consultar referencias e criar vendas. A API exige `Authorization: Bearer <chave>` e aceita ate 120 requisicoes por minuto por chave.
+
+1. Consulte `GET /api/v1/integration/references` para obter os IDs ativos de `sellers`, `services`, `operators` e `sale_types`.
+2. Envie `POST /api/v1/integration/sales` com os campos da venda normal e `external_sale_id`, o ID imutavel da venda no CRM.
+
+```powershell
+$apiKey = 'dav_live_<prefixo>_<segredo>'
+$headers = @{ Authorization = "Bearer $apiKey" }
+Invoke-RestMethod -Method Get -Uri 'https://seu-dominio/api/v1/integration/references' -Headers $headers
+
+$body = @{ external_sale_id = 'crm-sale-12345'; seller_id = 1; service_id = 2; operator_id = 3; sale_type_id = 1; sale_date = '2026-07-28'; sale_time = '14:30'; cnpj = '07404596000134'; company_name = 'Empresa Exemplo'; phone = '11999999999'; closed_by_name = 'Nome'; quantity = 1; unit_value = '99.90'; has_doc = $true; is_base_sale = $false; notes = $null } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri 'https://seu-dominio/api/v1/integration/sales' -Headers $headers -ContentType 'application/json' -Body $body
+```
+
+Uma venda nova retorna `201`. Reenviar o mesmo `external_sale_id` com a mesma chave retorna `200` e `idempotent: true`, sem duplicar venda, auditoria ou evento. A importacao Excel limpa o ledger de idempotencia junto das vendas; apos uma restauracao, o CRM deve reenviar somente vendas ainda nao presentes.
 ## Excel
 
 O export contém: Vendedoras, Serviços, Operadoras, Tipos de Venda, Períodos de Meta, Metas, Vendas e Metadados. Metadados registra schema, versão, UTC e timezone. Exportações por intervalo filtram vendas e metas que cruzam o período. O round-trip automatizado cobre todas as quatro metas categóricas, origem, total e demais campos atuais.

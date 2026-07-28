@@ -96,8 +96,7 @@ async function emit(db, type, payload) {
   await db('dashboard_events').insert({ type, payload: JSON.stringify(payload), expires_at: expiresAt });
 }
 
-async function mutateSale(db, { operation, id, input, userId }) {
-  return db.transaction(async (trx) => {
+async function mutateSaleInTransaction(trx, { operation, id, input, userId }) {
     const current = id ? await getSale(trx, id) : null;
     if (operation !== 'delete') await validateReferences(trx, input, current);
     const dates = [...new Set([current?.sale_date, input?.sale_date].filter(Boolean))];
@@ -134,7 +133,10 @@ async function mutateSale(db, { operation, id, input, userId }) {
       }
     }
     return { id: Number(saleId), events: eventResult, before: current };
-  });
+}
+
+async function mutateSale(db, options) {
+  return db.transaction((trx) => mutateSaleInTransaction(trx, options));
 }
 
 async function listReferences(db, current) {
@@ -143,4 +145,4 @@ async function listReferences(db, current) {
   return result;
 }
 
-module.exports = { applyFilters, listSales, getSale, saleData, rankingSnapshot, applicableDailyGoal, applicableDailyGoals, mutateSale, listReferences };
+module.exports = { applyFilters, listSales, getSale, saleData, rankingSnapshot, applicableDailyGoal, applicableDailyGoals, mutateSale, mutateSaleInTransaction, listReferences };

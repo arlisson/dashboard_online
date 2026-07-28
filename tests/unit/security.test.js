@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { csrfProtection } = require('../../src/middlewares/csrf');
 const { requireRole } = require('../../src/middlewares/auth');
+const { sanitize } = require('../../src/modules/audit/audit.service');
 
 test('CSRF rejeita mutação sem token', () => {
   let received;
@@ -22,4 +23,8 @@ test('matriz de papel impede viewer em rota admin', () => {
   let received;
   requireRole('admin')({ user: { role: 'viewer' } }, {}, (error) => { received = error; });
   assert.equal(received.code, 'FORBIDDEN');
+});
+
+test('auditoria remove chave de API e hash de segredo', () => {
+  assert.deepEqual(sanitize({ api_key: 'raw-key', apiKey: 'camel-key', secret_hash: 'hash', name: 'CRM' }), { name: 'CRM' });
 });

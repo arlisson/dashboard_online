@@ -1,6 +1,6 @@
 'use strict';
 
-const SENSITIVE = new Set(['password', 'password_hash', 'cookie', 'session', 'secret']);
+const SENSITIVE = new Set(['password', 'password_hash', 'cookie', 'session', 'secret', 'api_key', 'apikey', 'secret_hash']);
 
 function sanitize(value) {
   if (Array.isArray(value)) return value.map(sanitize);

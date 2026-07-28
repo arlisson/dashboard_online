@@ -4,7 +4,7 @@
   <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links"><span></span><span></span><span></span><span class="sr-only">Abrir menu</span></button>
   <div id="nav-links" class="nav-links">
     <a class="<%= active('Dashboard') %>" href="/">Início</a><a class="<%= active('Vendedoras') %>" href="/sellers">Vendedoras</a><a class="<%= active('Serviços') %>" href="/services">Serviços</a><a class="<%= active('Tipos de venda') %>" href="/sale-types">Tipos de Venda</a><a class="<%= active('Operadoras') %>" href="/operators">Operadoras</a><a class="<%= active('Vendas') %>" href="/sales">Vendas</a><a class="<%= active('Metas') %>" href="/goals">Metas</a><% if (currentUser.role === 'admin') { %><a class="<%= active('Excel') %>" href="/excel">Banco</a><% } %>
-    <details class="account-menu"><summary aria-label="Opções da conta"><span><%= currentUser.name?.charAt(0) || 'U' %></span></summary><div><% if (currentUser.role === 'admin') { %><a href="/users">Usuários</a><% } %><a href="/account/password">Alterar senha</a><form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button" type="submit">Sair</button></form></div></details>
+    <details class="account-menu"><summary aria-label="Opções da conta"><span><%= currentUser.name?.charAt(0) || 'U' %></span></summary><div><% if (currentUser.role === 'admin') { %><a href="/users">Usuários</a><a href="/integrations">Integrações</a><% } %><a href="/account/password">Alterar senha</a><form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button" type="submit">Sair</button></form></div></details>
   </div>
 </nav>
 <% } %>

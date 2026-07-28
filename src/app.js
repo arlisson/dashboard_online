@@ -36,9 +36,15 @@ function createApp({ db, env, registerRoutes } = {}) {
   });
   app.locals.sessionCookieName = env.SESSION_COOKIE_NAME;
   app.use(sessionMiddleware(db, env));
-  app.use(csrfToken);
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/v1/integration/')) return next();
+    return csrfToken(req, res, next);
+  });
   app.use(attachUser(db));
-  app.use(csrfProtection);
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/v1/integration/')) return next();
+    return csrfProtection(req, res, next);
+  });
   if (registerRoutes) registerRoutes(app);
   app.use(notFound);
   app.use(errorHandler);
