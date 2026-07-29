@@ -6,7 +6,7 @@ const { decimal } = require('../../shared/money');
 
 const positiveId = z.coerce.number().int().positive();
 const bool = z.union([z.boolean(), z.literal('true'), z.literal('false'), z.literal('1'), z.literal('0'), z.literal('on')]).transform((v) => v === true || v === 'true' || v === '1' || v === 'on');
-const optionalText = (max) => z.string().trim().max(max).transform((v) => v || null).optional().default(null);
+const optionalText = (max) => z.string().trim().max(max).transform((v) => v || null).nullable().optional().default(null);
 const money = z.union([z.string(), z.number()]).refine((v) => decimal(v) !== null, 'Informe um valor monetário não negativo.').transform((v) => decimal(v).toFixed(2));
 
 const saleSchema = z.object({

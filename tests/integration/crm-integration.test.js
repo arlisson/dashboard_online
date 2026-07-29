@@ -45,6 +45,17 @@ test('MySQL: CRM cria vendas de forma idempotente e chave revogada é bloqueada'
     assert.equal(Number((await db('external_sale_receipts').where({ api_key_id: keyId, external_sale_id: payload.external_sale_id }).count({ count: '*' }).first()).count), 1);
     assert.equal(Number((await db('audit_logs').where({ action: 'integration.sale.create', entity_id: String(saleId) }).count({ count: '*' }).first()).count), 1);
 
+    const removed = await request(app).delete(`/api/v1/integration/sales/${encodeURIComponent(payload.external_sale_id)}`).set('Authorization', `Bearer ${created.apiKey}`);
+    assert.equal(removed.status, 200, removed.text);
+    assert.equal(removed.body.data.deleted, true);
+    assert.equal(Number((await db('external_sale_receipts').where({ api_key_id: keyId, external_sale_id: payload.external_sale_id }).count({ count: '*' }).first()).count), 0);
+    assert.ok(await db('sales').where({ id: saleId }).whereNotNull('deleted_at').first());
+    assert.equal(Number((await db('audit_logs').where({ action: 'integration.sale.delete', entity_id: String(saleId) }).count({ count: '*' }).first()).count), 1);
+
+    const repeatedRemoval = await request(app).delete(`/api/v1/integration/sales/${encodeURIComponent(payload.external_sale_id)}`).set('Authorization', `Bearer ${created.apiKey}`);
+    assert.equal(repeatedRemoval.status, 200, repeatedRemoval.text);
+    assert.equal(repeatedRemoval.body.data.deleted, false);
+
     await keys.revokeApiKey(db, keyId, adminId);
     const revoked = await request(app).get('/api/v1/integration/references').set('Authorization', `Bearer ${created.apiKey}`);
     assert.equal(revoked.status, 401);

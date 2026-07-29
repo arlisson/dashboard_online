@@ -12,6 +12,10 @@ test('venda de integração exige identificador externo', () => {
   assert.throws(() => parse(integrationSaleSchema, { ...sale, external_sale_id: ' ' }), (error) => error.code === 'VALIDATION_ERROR' && Boolean(error.fieldErrors.external_sale_id));
 });
 
+test('venda de integração aceita observação nula', () => {
+  assert.equal(parse(integrationSaleSchema, { ...sale, notes: null }).notes, null);
+});
+
 test('middleware de integração rejeita Bearer ausente antes de acessar banco', async () => {
   let received;
   await requireIntegrationApiKey({})({ get: () => '' }, {}, (error) => { received = error; });
