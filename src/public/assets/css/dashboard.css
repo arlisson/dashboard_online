@@ -18,6 +18,7 @@
 .dashboard-card__header h2,.dashboard-performance>h2{margin:0;color:#fff;font-size:.78rem;line-height:1.2;font-weight:900;white-space:nowrap}
 .dashboard-pill{display:inline-flex;align-items:center;justify-content:center;padding:5px 10px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.08);color:#dceaff;font-size:.66rem;font-weight:800;line-height:1;white-space:nowrap}
 .shift-kpi{grid-column:span 2;min-height:295px;padding:12px}
+.shift-kpi>.dashboard-card__header{align-items:flex-start;flex-direction:column;gap:6px}
 .shift-kpi--morning{border-color:rgba(103,232,249,.3);background:radial-gradient(circle at top right,rgba(37,99,235,.18),transparent 48%),linear-gradient(180deg,#101d3a,#08152a)}
 .shift-kpi--morning::before{background:linear-gradient(90deg,#67e8f9,#2563eb)}
 .shift-kpi--afternoon{border-color:rgba(244,114,182,.3);background:radial-gradient(circle at top right,rgba(168,85,247,.2),transparent 48%),linear-gradient(180deg,#211230,#100b22)}
