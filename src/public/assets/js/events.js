@@ -13,6 +13,8 @@ if (userId) {
   const soundControl = document.querySelector('#sound-control');
   const isDashboard = window.location.pathname === '/';
   const isSalesPage = window.location.pathname === '/sales' || window.location.pathname.startsWith('/sales/');
+  const isSalesList = window.location.pathname === '/sales'
+    && new URLSearchParams(window.location.search).get('tab') !== 'form';
   const soundFiles = {
     sale_created: '/assets/sounds/venda.mp3',
     ranking_overtake: '/assets/sounds/ultrapassagem.mp3',
@@ -36,6 +38,41 @@ if (userId) {
   let reminderInFlightSlot = null;
   let isAudioLeader = !navigator.locks;
   let claimingAudioLeadership = false;
+  let refreshTimer = null;
+
+  const atualizarListaDeVendas = async () => {
+    const response = await fetch(window.location.href, {
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('Não foi possível atualizar a lista.');
+
+    const documentoAtualizado = new DOMParser().parseFromString(await response.text(), 'text/html');
+    for (const seletor of ['.sales-table', '.pagination']) {
+      const atual = document.querySelector(seletor);
+      const atualizado = documentoAtualizado.querySelector(seletor);
+      if (!atual || !atualizado) throw new Error(`Elemento ${seletor} não encontrado.`);
+      atual.replaceWith(atualizado);
+    }
+  };
+
+  const atualizarDadosDaVenda = () => {
+    // Não interrompe quem está preenchendo ou editando uma venda. Na lista,
+    // preservamos filtros e atualizamos somente os resultados e a paginação.
+    if ((!isDashboard && !isSalesList) || refreshTimer) return;
+    refreshTimer = window.setTimeout(async () => {
+      try {
+        if (isSalesList) await atualizarListaDeVendas();
+        else window.location.reload();
+      } catch {
+        // Em caso de sessão expirada ou resposta inesperada, a recarga normal
+        // preserva o comportamento já esperado pelo navegador.
+        window.location.reload();
+      } finally {
+        refreshTimer = null;
+      }
+    }, 300);
+  };
 
   const readJson = (storage, key) => {
     try { return JSON.parse(storage.getItem(key) || 'null'); } catch { return null; }
@@ -265,6 +302,7 @@ if (userId) {
     let payload = event.payload;
     if (typeof payload === 'string') try { payload = JSON.parse(payload); } catch { payload = null; }
     if (!payload && event.data) try { payload = JSON.parse(event.data); } catch { payload = null; }
+    if (event.type === 'sale_created') atualizarDadosDaVenda();
     if (Number(payload?.saleId) === handledSaleId()) return;
     if (originatedByActiveLocalFlow(payload)) return;
     if (event.type === 'ranking_overtake' && !isDashboard) return;
@@ -359,7 +397,7 @@ if (userId) {
   };
 
   const startLiveEvents = async () => {
-    if (!isDashboard || isSalesPage) return;
+    if (!isDashboard && !isSalesList) return;
     try {
       const response = await fetch('/api/v1/dashboard/events/cursor', { credentials: 'same-origin' });
       const json = await response.json();
