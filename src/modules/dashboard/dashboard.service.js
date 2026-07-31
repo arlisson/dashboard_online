@@ -36,6 +36,21 @@ function normalizeSummary(row) {
   };
 }
 
+async function aggregateTotals(db, filters, range) {
+  const row = await baseQuery(db, filters, range).clearSelect().select(
+    db.raw('COALESCE(SUM(sales.quantity),0) AS units'),
+    db.raw('COALESCE(SUM(sales.total_value),0) AS revenue'),
+    db.raw('COUNT(*) AS records'),
+    db.raw('SUM(sales.has_doc = 1) AS with_doc_records'),
+    db.raw('SUM(sales.has_doc = 0) AS without_doc_records'),
+    db.raw('COALESCE(SUM(CASE WHEN sales.has_doc = 1 THEN sales.total_value ELSE 0 END),0) AS with_doc_revenue'),
+    db.raw('COALESCE(SUM(CASE WHEN sales.has_doc = 0 THEN sales.total_value ELSE 0 END),0) AS without_doc_revenue')
+  ).first();
+  const totals = normalizeSummary(row);
+  totals.ticket = totals.units ? totals.revenue / totals.units : 0;
+  return totals;
+}
+
 async function aggregate(db, filters, range) {
   const base = baseQuery(db, filters, range);
   const documentRevenue = [
@@ -145,14 +160,17 @@ async function gauge(db, filters, range) {
 async function getDashboard(db, query, timezone) {
   const range = resolveRange(query, timezone);
   const filters = { seller_id: query.seller_id, service_id: query.service_id, operator_id: query.operator_id, sale_type_id: query.sale_type_id, has_doc: query.has_doc, is_base_sale: query.is_base_sale, shift: range.shift };
-  const [data, target, sellerDetails] = await Promise.all([aggregate(db, filters, range), targetFor(db, range, filters.seller_id), detailsBySeller(db, filters, range)]);
+  const dailyTotalsPromise = range.shift
+    ? aggregateTotals(db, { ...filters, shift: undefined }, { ...range, shift: undefined })
+    : Promise.resolve(null);
+  const [data, target, sellerDetails, dailyTotals] = await Promise.all([aggregate(db, filters, range), targetFor(db, range, filters.seller_id), detailsBySeller(db, filters, range), dailyTotalsPromise]);
   data.ranking = data.ranking.map((row) => ({ ...row, sales: sellerDetails.get(Number(row.seller_id)) || [] }));
   const now = DateTime.now().setZone(timezone);
   const standard = rangesFor(now);
   const gauges = Object.fromEntries(await Promise.all(Object.entries(standard).map(async ([key, value]) => [key, await gauge(db, filters, { ...value, period: key })])));
   const dimensionFiltered = Boolean(filters.service_id || filters.operator_id || filters.sale_type_id || filters.has_doc !== undefined && filters.has_doc !== '' || filters.is_base_sale !== undefined && filters.is_base_sale !== '');
   const targetValue = range.shift === 'morning' ? target?.morning_value : range.shift === 'afternoon' ? target?.afternoon_value : target?.goal_value;
-  return { range, filters, data, target, targetValue, gauges, progress: progress(data.totals.revenue, targetValue), goalFilterWarning: dimensionFiltered };
+  return { range, filters, data, dailyTotals: dailyTotals || data.totals, target, targetValue, gauges, progress: progress(data.totals.revenue, targetValue), goalFilterWarning: dimensionFiltered };
 }
 
 async function references(db) {
